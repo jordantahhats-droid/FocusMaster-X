@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isSelf(userId) { return signedIn() && request.auth.uid == userId; }
+    function isLinkedAdmin(userId) {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/users/$(userId)) &&
+        get(/databases/$(database)/documents/users/$(userId)).data.linkedAdminId == request.auth.uid;
+    }
+    function accountTypeUnchanged() {
+      return !('accountType' in request.resource.data.diff(resource.data).changedKeys());
+    }
+
+    match /users/{userId} {
+      allow read: if isSelf(userId) || isLinkedAdmin(userId);
+      allow create: if isSelf(userId);
+      allow update: if (isSelf(userId) && accountTypeUnchanged()) || isLinkedAdmin(userId);
+
+      match /sessions/{sessionId} {
+        allow read: if isSelf(userId) || isLinkedAdmin(userId);
+        allow write: if isSelf(userId);
+      }
+      match /timetable/{entryId} {
+        allow read: if isSelf(userId) || isLinkedAdmin(userId);
+        allow write: if isSelf(userId) || isLinkedAdmin(userId);
+      }
+      match /badges/{badgeId} {
+        allow read: if isSelf(userId) || isLinkedAdmin(userId);
+        allow write: if false;
+      }
+      match /reports/{reportId} {
+        allow read: if isSelf(userId) || isLinkedAdmin(userId);
+        allow write: if false;
+      }
+    }
+
+    match /otpRequests/{requestId} {
+      allow read, write: if false;
+    }
+
+    match /leaderboardGroups/{groupId} {
+      allow read: if signedIn() && request.auth.uid in resource.data.memberIds;
+      allow write: if false;
+    }
+  }
+}
