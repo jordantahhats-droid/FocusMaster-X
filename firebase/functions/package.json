@@ -1,0 +1,11 @@
+{
+  "name": "focusmasterx-functions",
+  "private": true,
+  "engines": { "node": "20" },
+  "main": "src/otp.js",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^6.1.1"
+  }
+}
